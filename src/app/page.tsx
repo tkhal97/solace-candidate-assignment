@@ -1,9 +1,15 @@
 // src/app/page.tsx
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { Suspense } from "react";
-import { SearchIcon, XCircleIcon, FilterIcon } from "lucide-react";
+import {
+  SearchIcon,
+  XCircleIcon,
+  FilterIcon,
+  ChevronDownIcon,
+} from "lucide-react";
 import Image from "next/image";
 import { debounce } from "lodash";
 
@@ -42,6 +48,13 @@ const styles = {
   resultsCount: "text-gray-700",
   resultsCountBold: "font-semibold",
   sortContainer: "flex items-center gap-3",
+  pageSizeContainer: "flex items-center gap-2 text-sm text-gray-700",
+  pageSizeLabel: "hidden sm:inline whitespace-nowrap",
+  pageSizeSelectContainer: "relative flex items-center",
+  pageSizeSelect:
+    "appearance-none bg-white border border-gray-300 rounded-md py-1.5 pl-3 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500",
+  pageSizeIcon:
+    "pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500",
   skeletonGrid: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6",
   emptyState: "text-center py-16 bg-gray-50 rounded-xl",
   emptyStateContent: "max-w-md mx-auto",
@@ -51,7 +64,10 @@ const styles = {
   clearButton:
     "px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors",
   advocatesGrid: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6",
-  paginationContainer: "mt-12",
+  paginationContainer: "mt-8 mb-4",
+  topPaginationContainer: "mb-6 mt-2",
+  controlsContainer: "flex flex-wrap items-center justify-between gap-4",
+  resultsDisplay: "flex items-center text-sm text-gray-600",
   errorContainer: "container mx-auto px-4 py-16 text-center",
   errorContent:
     "bg-red-50 border border-red-200 rounded-lg p-8 max-w-xl mx-auto",
@@ -71,27 +87,34 @@ export default function Home() {
   const [sortOption, setSortOption] = useState("default");
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
-
-  // calculate pagination values
-  const totalPages = Math.ceil(filteredAdvocates.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedAdvocates = filteredAdvocates.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [allAdvocates, setAllAdvocates] = useState<Advocate[]>([]);
 
   useEffect(() => {
     const fetchAdvocates = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/advocates");
+        const allResponse = await fetch("/api/advocates?pageSize=100");
+        if (!allResponse.ok) {
+          throw new Error(`Error: ${allResponse.status}`);
+        }
+        const allData = await allResponse.json();
+        setAllAdvocates(allData.data);
+
+        //  fetch paginated data
+        const response = await fetch(
+          `/api/advocates?page=${currentPage}&pageSize=${itemsPerPage}`
+        );
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
         }
         const data = await response.json();
         setAdvocates(data.data);
         setFilteredAdvocates(data.data);
+        setTotalItems(data.pagination.total);
+        setTotalPages(data.pagination.totalPages);
         setIsLoading(false);
       } catch (err) {
         setError(
@@ -102,16 +125,16 @@ export default function Home() {
     };
 
     fetchAdvocates();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
-  // Extract all unique specialties for filter options
+  // getall unique specialties for filter options
   const allSpecialties = Array.from(
-    new Set(advocates.flatMap((advocate) => advocate.specialties))
+    new Set(allAdvocates.flatMap((advocate) => advocate.specialties))
   ).sort();
 
   const filterAdvocates = useCallback(
     debounce(() => {
-      const filtered = advocates.filter((advocate) => {
+      const filtered = allAdvocates.filter((advocate) => {
         // search term filtering
         const matchesSearch =
           searchTerm === "" ||
@@ -164,20 +187,45 @@ export default function Home() {
           break;
       }
 
-      setFilteredAdvocates(sortedResults);
-      setCurrentPage(1); // Reset to first page when filters change
+      setTotalItems(sortedResults.length);
+      setTotalPages(Math.ceil(sortedResults.length / itemsPerPage));
+
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      setFilteredAdvocates(
+        sortedResults.slice(startIndex, startIndex + itemsPerPage)
+      );
+
+      // if current page is out of bounds after filtering, reset to pg1
+      if (currentPage > Math.ceil(sortedResults.length / itemsPerPage)) {
+        setCurrentPage(1);
+      }
     }, 300),
-    [advocates, searchTerm, selectedSpecialties, sortOption]
+    [
+      allAdvocates,
+      searchTerm,
+      selectedSpecialties,
+      sortOption,
+      currentPage,
+      itemsPerPage,
+    ]
   );
 
   // trigger filtering when search, specialties, or sort changes
   useEffect(() => {
     filterAdvocates();
     return () => filterAdvocates.cancel();
-  }, [filterAdvocates, searchTerm, selectedSpecialties, sortOption]);
+  }, [
+    filterAdvocates,
+    searchTerm,
+    selectedSpecialties,
+    sortOption,
+    currentPage,
+    itemsPerPage,
+  ]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setCurrentPage(1); // reset to 1st page when search changes
   };
 
   const handleSpecialtyChange = (specialty: string) => {
@@ -186,22 +234,35 @@ export default function Home() {
         ? prev.filter((s) => s !== specialty)
         : [...prev, specialty]
     );
+    setCurrentPage(1); // reset to 1st page when filters change
   };
 
   const resetFilters = () => {
     setSearchTerm("");
     setSelectedSpecialties([]);
     setSortOption("default");
+    setCurrentPage(1);
   };
 
   const handleSortChange = (option: string) => {
     setSortOption(option);
+    setCurrentPage(1); // reset to 1st page when sort changes
+  };
+
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1); // seset to 1st page when page size changes
   };
 
   // toggle filter panel on mobile
   const toggleFilters = () => {
     setShowFilters((prev) => !prev);
   };
+
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+  const showingAllAdvocates =
+    totalItems <= itemsPerPage || (startItem === 1 && endItem === totalItems);
 
   if (error) {
     return (
@@ -219,6 +280,37 @@ export default function Home() {
       </div>
     );
   }
+
+  const PaginationControls = () => (
+    <div className={styles.controlsContainer}>
+      <div className={styles.pageSizeContainer}>
+        <span className={styles.pageSizeLabel}>Show:</span>
+        <div className={styles.pageSizeSelectContainer}>
+          <select
+            value={itemsPerPage}
+            onChange={handlePageSizeChange}
+            className={styles.pageSizeSelect}
+            disabled={isLoading}
+          >
+            {/* todo: can update to whatever values make sense */}
+            <option value={6}>6</option>
+            <option value={12}>12</option>
+            <option value={24}>24</option>
+            <option value={48}>48</option>
+          </select>
+          <ChevronDownIcon size={14} className={styles.pageSizeIcon} />
+        </div>
+      </div>
+
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      )}
+    </div>
+  );
 
   return (
     <main className={styles.container}>
@@ -292,12 +384,19 @@ export default function Home() {
             <p className={styles.resultsCount}>
               {isLoading ? (
                 "Loading results..."
+              ) : showingAllAdvocates ? (
+                <>
+                  Found{" "}
+                  <span className={styles.resultsCountBold}>{totalItems}</span>{" "}
+                  advocates
+                </>
               ) : (
                 <>
                   Showing{" "}
-                  <span className={styles.resultsCountBold}>
-                    {filteredAdvocates.length}
-                  </span>{" "}
+                  <span className={styles.resultsCountBold}>{startItem}</span>{" "}
+                  to <span className={styles.resultsCountBold}>{endItem}</span>{" "}
+                  of{" "}
+                  <span className={styles.resultsCountBold}>{totalItems}</span>{" "}
                   advocates
                 </>
               )}
@@ -308,12 +407,21 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Top pagination controls */}
+          {!isLoading && filteredAdvocates.length > 0 && (
+            <div className={styles.topPaginationContainer}>
+              <PaginationControls />
+            </div>
+          )}
+
           {/* Results grid */}
           {isLoading ? (
             <div className={styles.skeletonGrid}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
+              {Array.from({ length: itemsPerPage < 12 ? itemsPerPage : 6 }).map(
+                (_, i) => (
+                  <SkeletonCard key={i} />
+                )
+              )}
             </div>
           ) : filteredAdvocates.length === 0 ? (
             <div className={styles.emptyState}>
@@ -332,7 +440,7 @@ export default function Home() {
           ) : (
             <>
               <div className={styles.advocatesGrid}>
-                {paginatedAdvocates.map((advocate) => (
+                {filteredAdvocates.map((advocate) => (
                   <AdvocateCard
                     key={`${advocate.firstName}-${advocate.lastName}-${advocate.id}`}
                     advocate={advocate}
@@ -340,14 +448,10 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Pagination */}
-              {filteredAdvocates.length > itemsPerPage && (
+              {/* Bottom pagination */}
+              {filteredAdvocates.length > 0 && (
                 <div className={styles.paginationContainer}>
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                  />
+                  <PaginationControls />
                 </div>
               )}
             </>
