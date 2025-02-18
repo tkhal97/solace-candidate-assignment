@@ -1,3 +1,5 @@
+// src/db/seed/advocates.ts
+
 import db from "..";
 import { advocates } from "../schema";
 
