@@ -1,3 +1,104 @@
+/* src/app/globals.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased text-gray-900;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    @apply bg-gray-50;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .brand-heading {
+    @apply font-medium tracking-tight;
+    font-family: "Mollie Glaston", sans-serif;
+  }
+}
+
+@layer components {
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+  }
+
+  .prose h1 {
+    @apply text-3xl font-bold mb-6;
+    font-family: "Mollie Glaston", sans-serif;
+  }
+
+  .prose h2 {
+    @apply text-2xl font-semibold mt-8 mb-4;
+    font-family: "Mollie Glaston", sans-serif;
+  }
+
+  .prose p {
+    @apply mb-4 leading-relaxed;
+  }
+
+  .prose ul {
+    @apply list-disc ml-6 mb-6;
+  }
+
+  .prose li {
+    @apply mb-2;
+  }
+
+  .font-brand {
+    font-family: "Mollie Glaston", sans-serif;
+  }
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite linear;
+  background: linear-gradient(to right, #f0f0f0 8%, #e0e0e0 18%, #f0f0f0 33%);
+  background-size: 800px 104px;
+}
+
+/* Transition effects */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* focus styles for accessibility */
+*:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-white;
+}
