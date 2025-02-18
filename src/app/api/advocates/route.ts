@@ -1,33 +1,42 @@
 // src/app/api/advocates/route.ts
 
-import { advocateData } from "@/db/seed/advocates";
+import db from "@/db";
+import { advocates } from "@/db/schema";
 import { NextRequest } from "next/server";
+
+type Advocate = {
+  specialties: string[];
+  city: string;
+};
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "10");
+    const data = (await db.select().from(advocates)) as Advocate[];
     const specialty = searchParams.get("specialty");
     const city = searchParams.get("city");
 
-    // Uncomment this line to use a database
-    // const data = await db.select().from(advocates);
+    // using the database
 
-    let data = advocateData;
+    let filteredData = data;
 
     if (specialty) {
-      data = data.filter((advocate) =>
+      filteredData = filteredData.filter((advocate) =>
         advocate.specialties.includes(specialty)
       );
     }
 
     if (city) {
-      data = data.filter((advocate) => advocate.city === city);
+      filteredData = filteredData.filter((advocate) => advocate.city === city);
     }
 
-    const total = data.length;
-    const paginatedData = data.slice((page - 1) * pageSize, page * pageSize);
+    const total = filteredData.length;
+    const paginatedData = filteredData.slice(
+      (page - 1) * pageSize,
+      page * pageSize
+    );
 
     return Response.json({
       data: paginatedData,
