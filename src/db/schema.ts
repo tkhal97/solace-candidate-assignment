@@ -1,3 +1,4 @@
+// src/db/schema.ts
 import { sql } from "drizzle-orm";
 import {
   pgTable,
@@ -8,7 +9,9 @@ import {
   timestamp,
   bigint,
 } from "drizzle-orm/pg-core";
+import { z } from "zod";
 
+// Database schema
 const advocates = pgTable("advocates", {
   id: serial("id").primaryKey(),
   firstName: text("first_name").notNull(),
@@ -21,4 +24,15 @@ const advocates = pgTable("advocates", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export { advocates };
+// validation schema
+const advocateSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  city: z.string().min(1),
+  degree: z.string().min(1),
+  specialties: z.array(z.string()),
+  yearsOfExperience: z.number().int().positive(),
+  phoneNumber: z.number().int().positive(),
+});
+
+export { advocates, advocateSchema };
