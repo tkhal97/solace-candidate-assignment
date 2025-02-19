@@ -11,3 +11,15 @@ export interface Advocate {
   phoneNumber: number;
   createdAt?: string;
 }
+
+// Cache storage
+export interface AdvocatesCache {
+  data: Advocate[];
+  timestamp: number;
+  pagination?: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+}

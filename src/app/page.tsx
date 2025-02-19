@@ -9,8 +9,8 @@ import {
   XCircleIcon,
   FilterIcon,
   ChevronDownIcon,
+  AlertCircleIcon,
 } from "lucide-react";
-import Image from "next/image";
 import { debounce } from "lodash";
 
 // Components
@@ -75,6 +75,11 @@ const styles = {
   errorMessage: "text-red-600 mb-6",
   tryAgainButton:
     "px-5 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors",
+  alertBanner:
+    "mb-6 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3",
+  alertIcon: "flex-shrink-0 text-amber-500",
+  alertMessage: "text-amber-800 text-sm",
+  alertTime: "font-semibold",
 };
 
 export default function Home() {
@@ -91,6 +96,8 @@ export default function Home() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [allAdvocates, setAllAdvocates] = useState<Advocate[]>([]);
+  const [dataStatus, setDataStatus] = useState<"live" | "cached" | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAdvocates = async () => {
@@ -102,6 +109,15 @@ export default function Home() {
         }
         const allData = await allResponse.json();
         setAllAdvocates(allData.data);
+
+        // Check if using cached data
+        if (allData.status === "cached") {
+          setDataStatus("cached");
+          setLastUpdated(allData.lastUpdated);
+        } else {
+          setDataStatus("live");
+          setLastUpdated(null);
+        }
 
         //  fetch paginated data
         const response = await fetch(
@@ -327,6 +343,17 @@ export default function Home() {
           preferences.
         </p>
       </header>
+
+      {/* Cached data alert banner */}
+      {dataStatus === "cached" && lastUpdated && (
+        <div className={styles.alertBanner} role="alert">
+          <AlertCircleIcon size={20} className={styles.alertIcon} />
+          <p className={styles.alertMessage}>
+            Database connection failed. Showing cached data from{" "}
+            <span className={styles.alertTime}>{lastUpdated}</span> ago.
+          </p>
+        </div>
+      )}
 
       <div className={styles.gridLayout}>
         {/* Filters sidebar - desktop */}
