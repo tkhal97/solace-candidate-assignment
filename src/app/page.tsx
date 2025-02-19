@@ -151,15 +151,21 @@ export default function Home() {
   const filterAdvocates = useCallback(
     debounce(() => {
       const filtered = allAdvocates.filter((advocate) => {
+        // create fullname for combined search
+        const fullName =
+          `${advocate.firstName} ${advocate.lastName}`.toLowerCase();
+        const searchTermLower = searchTerm.toLowerCase();
+
         // search term filtering
         const matchesSearch =
           searchTerm === "" ||
-          advocate.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          advocate.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          advocate.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          advocate.degree.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          fullName.includes(searchTermLower) ||
+          advocate.firstName.toLowerCase().includes(searchTermLower) ||
+          advocate.lastName.toLowerCase().includes(searchTermLower) ||
+          advocate.city.toLowerCase().includes(searchTermLower) ||
+          advocate.degree.toLowerCase().includes(searchTermLower) ||
           advocate.specialties.some((s) =>
-            s.toLowerCase().includes(searchTerm.toLowerCase())
+            s.toLowerCase().includes(searchTermLower)
           );
 
         //specialty filtering
