@@ -32,12 +32,14 @@ const styles = {
   pageDescription: "text-xl text-gray-600 max-w-2xl",
   gridLayout: "grid grid-cols-1 lg:grid-cols-4 gap-8",
   sidebar:
-    "lg:block bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit sticky top-6",
-  sidebarHidden: "hidden",
+    "lg:block bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit lg:sticky lg:top-6",
+  sidebarHidden: "lg:block hidden",
+  mobileFilterOverlay: "fixed inset-0 bg-gray-900 bg-opacity-50 z-40 flex items-center justify-center lg:hidden",
+  mobileFilterContainer: "bg-white rounded-xl shadow-lg w-11/12 max-w-md max-h-[80vh] overflow-y-auto",
   sidebarHeader: "flex items-center justify-between mb-6",
   sidebarTitle: "text-xl font-semibold text-gray-900",
   closeFilterButton: "lg:hidden text-gray-500 hover:text-gray-700",
-  searchContainer: "mb-8",
+  searchContainer: "mb-8 text-sm",
   specialtiesContainer: "mb-8",
   specialtiesTitle: "text-lg font-medium text-gray-900 mb-4",
   clearFiltersContainer: "mt-6 pt-6 border-t border-gray-100",
@@ -152,10 +154,9 @@ export default function Home() {
     debounce(() => {
       const filtered = allAdvocates.filter((advocate) => {
         // create fullname for combined search
-        const fullName =
-          `${advocate.firstName} ${advocate.lastName}`.toLowerCase();
+        const fullName = `${advocate.firstName} ${advocate.lastName}`.toLowerCase();
         const searchTermLower = searchTerm.toLowerCase();
-
+        
         // search term filtering
         const matchesSearch =
           searchTerm === "" ||
@@ -279,6 +280,10 @@ export default function Home() {
   // toggle filter panel on mobile
   const toggleFilters = () => {
     setShowFilters((prev) => !prev);
+    // prevent scrolling when filter panel is open on mobile
+    if (typeof window !== 'undefined') {
+      document.body.style.overflow = !showFilters ? 'hidden' : '';
+    }
   };
 
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -362,12 +367,57 @@ export default function Home() {
       )}
 
       <div className={styles.gridLayout}>
-        {/* Filters sidebar - desktop */}
-        <aside
-          className={`${styles.sidebar} ${
-            !showFilters ? styles.sidebarHidden : ""
-          }`}
-        >
+        {/* mobile filters - centered overlay */}
+        {showFilters && (
+          <div className="lg:hidden fixed inset-0 bg-gray-900 bg-opacity-50 z-40 flex items-center justify-center">
+            <div className="bg-white rounded-xl shadow-lg w-11/12 max-w-md max-h-[80vh] overflow-y-auto p-6">
+              <div className={styles.sidebarHeader}>
+                <h2 className={styles.sidebarTitle}>Filters</h2>
+                <button
+                  onClick={toggleFilters}
+                  className={styles.closeFilterButton}
+                >
+                  <XCircleIcon size={20} />
+                </button>
+              </div>
+
+              <div className={styles.searchContainer}>
+                <SearchInput
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  placeholder="Search"
+                  helperText="Search by name, location, or specialty"
+                />
+              </div>
+
+              <div className={styles.specialtiesContainer}>
+                <h3 className={styles.specialtiesTitle}>Specialties</h3>
+                <SpecialtyFilter
+                  specialties={allSpecialties}
+                  selectedSpecialties={selectedSpecialties}
+                  onChange={handleSpecialtyChange}
+                />
+              </div>
+
+              {(searchTerm ||
+                selectedSpecialties.length > 0 ||
+                sortOption !== "default") && (
+                <div className={styles.clearFiltersContainer}>
+                  <button
+                    onClick={resetFilters}
+                    className={styles.clearFiltersButton}
+                  >
+                    <XCircleIcon size={16} />
+                    Clear all filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* desktop filters sidebar */}
+        <aside className={`${styles.sidebar} ${!showFilters ? styles.sidebarHidden : ""}`}>
           <div className={styles.sidebarHeader}>
             <h2 className={styles.sidebarTitle}>Filters</h2>
             <button
@@ -382,7 +432,8 @@ export default function Home() {
             <SearchInput
               value={searchTerm}
               onChange={handleSearchChange}
-              placeholder="Search by name, location, specialty..."
+              placeholder="Search"
+              helperText="Search by name, location, or specialty"
             />
           </div>
 
