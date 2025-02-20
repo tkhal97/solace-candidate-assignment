@@ -1,5 +1,5 @@
 // src/components/AdvocateCard.tsx
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   PhoneIcon,
   MapPinIcon,
@@ -28,12 +28,14 @@ const styles = {
   specialtiesSection: "mt-4",
   specialtiesHeading: "text-sm font-medium text-gray-700 mb-2",
   specialtiesList: "flex flex-wrap gap-2",
+  specialtiesCollapsed: "flex flex-wrap gap-2",
+  specialtiesExpanded: "flex flex-wrap gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1",
   specialtyTag:
     "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700",
   moreTag:
     "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700",
   expandedContent: "mt-6 pt-4 border-t border-gray-100",
-  phoneContainer: "flex items-center gap-2",
+  phoneContainer: "flex items-center gap-2 mt-4",
   phoneIcon: "text-gray-500",
   phoneLink: "text-blue-600 hover:text-blue-800 transition-colors",
   spacer: "flex-grow mt-auto",
@@ -42,10 +44,13 @@ const styles = {
     "text-sm text-gray-600 flex items-center gap-1 hover:text-gray-900 transition-colors",
   contactButton:
     "px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors",
+  visiblyHidden: "invisible",
 };
 
 export default function AdvocateCard({ advocate }: AdvocateCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [needsExpansion, setNeedsExpansion] = useState(true);
+  const specialtiesContainerRef = useRef<HTMLDivElement>(null);
 
   // Format phone number as (XXX) XXX-XXXX
   const formatPhoneNumber = (phoneNumber: number) => {
@@ -58,6 +63,18 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
     }
     return phoneNumber;
   };
+
+  useEffect(() => {
+    if (advocate.specialties.length > 3) {
+      setNeedsExpansion(true);
+      return;
+    }
+    
+    // if few specialties, don't need expansion
+    setNeedsExpansion(false);
+    // auto-show phone when not needing expansion
+    setIsExpanded(true);
+  }, [advocate.specialties.length]);
 
   const initials = `${advocate.firstName[0]}${advocate.lastName[0]}`;
 
@@ -81,6 +98,8 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
   const avatarColor = getColorForName(
     `${advocate.firstName} ${advocate.lastName}`
   );
+
+  const hasMultipleSpecialties = advocate.specialties.length > 3;
 
   return (
     <div className={styles.card}>
@@ -111,9 +130,9 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
         </div>
 
         {/* Specialties */}
-        <div className={styles.specialtiesSection}>
+        <div className={styles.specialtiesSection} ref={specialtiesContainerRef}>
           <h3 className={styles.specialtiesHeading}>Specialties</h3>
-          <div className={styles.specialtiesList}>
+          <div className={isExpanded && hasMultipleSpecialties ? styles.specialtiesExpanded : styles.specialtiesCollapsed}>
             {advocate.specialties
               .slice(0, isExpanded ? undefined : 3)
               .map((specialty, index) => (
@@ -129,19 +148,16 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
           </div>
         </div>
 
-        {/* Expanded content */}
-        {isExpanded && (
-          <div className={styles.expandedContent}>
-            <div className={styles.phoneContainer}>
-              <PhoneIcon size={16} className={styles.phoneIcon} />
-
-              <a
-                href={`tel:${advocate.phoneNumber}`}
-                className={styles.phoneLink}
-              >
-                {formatPhoneNumber(advocate.phoneNumber)}
-              </a>
-            </div>
+        {/* phone number - shown always when no expansion needed */}
+        {(isExpanded || !needsExpansion) && (
+          <div className={styles.phoneContainer}>
+            <PhoneIcon size={16} className={styles.phoneIcon} />
+            <a
+              href={`tel:${advocate.phoneNumber}`}
+              className={styles.phoneLink}
+            >
+              {formatPhoneNumber(advocate.phoneNumber)}
+            </a>
           </div>
         )}
 
@@ -153,7 +169,9 @@ export default function AdvocateCard({ advocate }: AdvocateCardProps) {
       <div className={styles.footer}>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className={styles.toggleButton}
+          className={`${styles.toggleButton} ${!needsExpansion ? styles.visiblyHidden : ''}`}
+          aria-hidden={!needsExpansion}
+          tabIndex={needsExpansion ? 0 : -1}
         >
           {isExpanded ? (
             <>

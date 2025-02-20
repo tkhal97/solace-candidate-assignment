@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Image from "next/image";
+import MobileMenu from "@/components/MobileMenu";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -41,6 +42,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const navLinks = [
+    { href: "#", label: "How it Works" },
+    { href: "#", label: "For Advocates" },
+    { href: "#", label: "Resources" },
+    { href: "#", label: "FAQ" },
+  ];
+
   return (
     <html lang="en">
       <body className={inter.className}>
@@ -58,23 +66,17 @@ export default function RootLayout({
               </div>
 
               <nav className={styles.navigation}>
-                <a href="#" className={styles.navLink}>
-                  How it Works
-                </a>
-                <a href="#" className={styles.navLink}>
-                  For Advocates
-                </a>
-                <a href="#" className={styles.navLink}>
-                  Resources
-                </a>
-                <a href="#" className={styles.navLink}>
-                  FAQ
-                </a>
+                {navLinks.map((link) => (
+                  <a key={link.label} href={link.href} className={styles.navLink}>
+                    {link.label}
+                  </a>
+                ))}
               </nav>
 
               <div className={styles.headerButtons}>
                 <button className={styles.loginButton}>Log in</button>
                 <button className={styles.ctaButton}>Get Started</button>
+                <MobileMenu navLinks={navLinks} />
               </div>
             </div>
           </div>
