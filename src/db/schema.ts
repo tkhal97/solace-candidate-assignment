@@ -32,7 +32,13 @@ const advocateSchema = z.object({
   degree: z.string().min(1),
   specialties: z.array(z.string()),
   yearsOfExperience: z.number().int().positive(),
-  phoneNumber: z.number().int().positive(),
+  phoneNumber: z.number()
+    .int()
+    .positive()
+    .refine(
+      (n) => n.toString().length === 10,
+      "Phone number must be exactly 10 digits"
+    ),
 });
 
 export { advocates, advocateSchema };
