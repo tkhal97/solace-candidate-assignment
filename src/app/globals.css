@@ -1,5 +1,4 @@
 /* src/app/globals.css */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,17 +12,14 @@
   body {
     @apply bg-gray-50;
   }
+}
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  .brand-heading {
-    @apply font-medium tracking-tight;
-    font-family: "Mollie Glaston", sans-serif;
-  }
+@font-face {
+  font-family: 'Mollie Glaston';
+  src: url('/fonts/mollie-glaston.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
 @layer components {
@@ -41,12 +37,9 @@
 
   .prose h1 {
     @apply text-3xl font-bold mb-6;
-    font-family: "Mollie Glaston", sans-serif;
   }
-
   .prose h2 {
     @apply text-2xl font-semibold mt-8 mb-4;
-    font-family: "Mollie Glaston", sans-serif;
   }
 
   .prose p {
@@ -59,10 +52,6 @@
 
   .prose li {
     @apply mb-2;
-  }
-
-  .font-brand {
-    font-family: "Mollie Glaston", sans-serif;
   }
 }
 
