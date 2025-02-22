@@ -51,18 +51,24 @@ jest.mock('@/db', () => ({
 describe('Advocates API', () => {
   let GET: any;
   let dbMock: any;
+  let originalConsoleError: typeof console.error;
+
+  beforeAll(() => {
+    originalConsoleError = console.error;
+    console.error = jest.fn();
+  });
+
+  afterAll(() => {
+    console.error = originalConsoleError;
+  });
 
   beforeEach(async () => {
     jest.resetModules();
     jest.clearAllMocks();
-
-    // import fresh copy of the route handler
     const { GET: getFn } = await import('@/app/api/advocates/route');
     GET = getFn;
-
-    // get the db mock
     dbMock = (await import('@/db')).default;
-    (dbMock.select as jest.Mock).mockReturnThis();
+    dbMock.select.mockReturnThis();
     dbMock.from.mockResolvedValue(mockAdvocates);
   });
 
@@ -78,6 +84,36 @@ describe('Advocates API', () => {
 
     expect(data.data).toHaveLength(2);
     expect(data.status).toBe('live');
+    expect(data.pagination).toEqual({
+      total: 2,
+      page: 1,
+      pageSize: 10,
+      totalPages: 1
+    });
+  });
+
+  it('handles custom pagination', async () => {
+    const request = new NextRequest('http://localhost:3000/api/advocates?page=1&pageSize=1');
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(data.data).toHaveLength(1);
+    expect(data.pagination).toEqual({
+      total: 2,
+      page: 1,
+      pageSize: 1,
+      totalPages: 2
+    });
+  });
+
+  it('filters by specialty correctly', async () => {
+    const request = new NextRequest('http://localhost:3000/api/advocates?specialty=Specialty%201');
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(data.data).toHaveLength(1);
+    expect(data.data[0].firstName).toBe('John');
+    expect(data.data[0].specialties).toContain('Specialty 1');
   });
 
   it('returns error when database fails and no cache exists', async () => {
@@ -88,13 +124,18 @@ describe('Advocates API', () => {
     
     const mockFrom = jest.fn().mockRejectedValueOnce(new Error('Database error'));
     (freshDb.select as jest.Mock).mockReturnValue({ from: mockFrom });
-
+    
     const request = new NextRequest('http://localhost:3000/api/advocates');
     const response = await freshGet(request);
     
     expect(response.status).toBe(500);
     const data = await response.json();
     expect(data.status).toBe('error');
+    expect(data.error).toBe('Failed to fetch advocates');
+    expect(console.error).toHaveBeenCalledWith(
+      'Error fetching advocates:',
+      expect.any(Error)
+    );
   });
 
 });
